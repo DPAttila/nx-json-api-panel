@@ -2,15 +2,20 @@
 
 (in-package #:nx-json-api-panel)
 
+(defun embed-query-text (alist query-text)
+  (mapcar 
+    (lambda (q) 
+      (cons 
+        (car q) 
+        (if (stringp (cdr q))
+            (format nil (cdr q) query-text)
+            (cdr q)))) 
+    alist))
 
-(defun get-query-url (word host path-format-str query-param-format-strs)
+(defun get-query-url (word host path-format-str query-params &key (scheme "https"))
   (let* ((path (format nil path-format-str word))
-         (query-params 
-           (mapcar 
-             (lambda (q) (cons (car q) (format nil (cdr q) word))) 
-             query-param-format-strs))
          (query-url (quri:make-uri 
-               :scheme "https" 
+               :scheme scheme
                :host host
                :path path
                :query query-params
@@ -25,10 +30,10 @@
       (lambda (q) (cl-ppcre:regex-replace-all "\\s+" q " "))) 
     query))
 
-(defun execute-request (url)
+(defun execute-request (url method &key (content nil))
   (multiple-value-bind (body status res-headers) 
     (handler-case 
-      (dex:get url)
+      (dex:request url :method method :content content)
       (dex:http-request-failed (e)
         (format t "HTTP Request Error: ~A" e)
         (values 
@@ -106,10 +111,18 @@
   (command-name 
    api-host 
    api-path-format-str 
-   &key (query-params '()) 
+   &key (method :GET)
+   (scheme "https")
+   (query-params nil) 
+   (content nil)
    (panel-title-format-str (format nil "~A: ~~A" (symbol-name command-name))))
 
-  `(nyxt:define-panel-command-global 
+  (let ((exec-req 
+          (if (null content)
+              `(execute-request url ,method)
+              `(execute-request url ,method :content ,content))))
+
+    `(nyxt:define-panel-command-global 
     ,command-name
     nil
     (nyxt:panel-buffer ,(symbol-name command-name))
@@ -119,42 +132,28 @@
     ;; the use of the system clipboard?)
     (nyxt:ffi-buffer-copy (nyxt:current-buffer))
 
-    (let* ((selection (metabang.cl-containers:delete-first 
-                       (nyxt:clipboard-ring nyxt:*browser*)))
-           (selection-sanitized (sanitize-query selection))
+    (let* ((selection 
+             (metabang.cl-containers:delete-first (nyxt:clipboard-ring nyxt:*browser*)))
+           (selection-sanitized 
+             (sanitize-query selection))
+           (content-prepared 
+             (njson:encode
+               (embed-query-text ,content selection-sanitized)))
            (url
             (get-query-url 
               selection-sanitized
               ,api-host 
               ,api-path-format-str 
-              ,query-params))
-           (response
-            (execute-request url)))
+              (embed-query-text ,query-params selection-sanitized)
+              :scheme ,scheme))
+           (response (execute-request url ,method :content content-prepared)))
         (nyxt:echo url)
-
-        (format t (render-response response))
 
         (format nil "<h4>~A</h4> ~A" 
                 (format nil ,panel-title-format-str selection-sanitized)
-                (render-response response)))))
-
-(nx-json-api-panel:add-api dictionary-api "api.dictionaryapi.dev" "/api/v2/entries/en/~A")
-(nx-json-api-panel:add-api country-api "restcountries.com" "/v3.1/name/~A")
-(nx-json-api-panel:add-api 
-  weather-api 
-  "api.weatherapi.com" 
-  "/v1/current.json" 
-  :query-params '(("key" . "2a025a6562694db5bc0144313232912") 
-                 ("aqi" . "no")
-                 ("q" . "~A"))
-  :panel-title-format-str "Weather in ~A")
+                (render-response response))))))
 
 (nx-json-api-panel:add-api 
-  wikipedia-api 
-  "en.wikipedia.org"
-  "/api/rest_v1/page/summary/~A")
-
-(nx-json-api-panel:add-api
-  bad-api
-  "bad"
-  "api")
+  new-dictionary-api 
+  "api.dictionaryapi.dev" 
+  "/api/v2/entries/en/~A")

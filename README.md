@@ -1,6 +1,6 @@
 # nx-json-api-panel
 
-A Nyxt browser extension to conveniently query JSON API-s with the content of your clipboard.
+A Nyxt browser extension to conveniently query JSON APIs with the content of your clipboard.
 
 ## License
 
