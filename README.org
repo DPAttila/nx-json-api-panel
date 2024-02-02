@@ -1,0 +1,53 @@
+#+TITLE: nx-json-api-panel
+
+#+DOWNLOAD:
+
+#+CONTRIBUTING:
+
+A Nyxt browser extension to conveniently query JSON APIs with the content of your clipboard.
+This tool allows easy definition API query commands. The commands will be run against the
+user's clipboard conent, and display their result in a side panel.
+
+* Example config file and api command declarations
+
+#+NAME: config.lisp
+#+BEGIN_SRC lisp
+(nyxt:define-nyxt-user-system-and-load "nyxt-user/nx-json-api-panel"
+  :depends-on ("nx-json-api-panel") :components ("json-api-panel-defs.lisp"))
+#+END_SRC
+
+#+NAME: json-api-panel-defs.lisp
+#+BEGIN_SRC lisp
+(in-package #:nyxt-user)
+
+(nx-json-api-panel:add-api country-api "restcountries.com" "/v3.1/name/~A")
+
+(nx-json-api-panel:add-api 
+  weather-api 
+  "api.weatherapi.com" 
+  "/v1/current.json" 
+  :query-params '(("key" . "YOUR_API_KEY") 
+                 ("aqi" . "no")
+                 ("q" . "~A"))
+  :panel-title-format-str "Weather in ~A")
+
+(nx-json-api-panel:add-api 
+  wikipedia-api 
+  "en.wikipedia.org"
+  "/api/rest_v1/page/summary/~A")
+
+(nx-json-api-panel:add-api
+  local-llm-api
+  "127.0.0.1:11434"
+  "/api/generate"
+  :scheme "http"
+  :method :POST
+  :content '(("model" . "phi")
+             ("stream" . nil)
+             ("prompt" . "~A")))
+#+END_SRC
+
+* License
+
+BSD 3-clause
+

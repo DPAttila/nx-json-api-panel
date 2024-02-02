@@ -36,7 +36,6 @@
 (defun execute-request (url method &key (content nil))
   "Send the API request with dexador. In case of an error response,
   inform the user."
-  (format t "~A%" url)
   (multiple-value-bind (body status res-headers) 
       (handler-case 
           (dex:request url :method method :content content)
@@ -49,15 +48,13 @@
         (error (e)
           (format t "General Error: ~A~%" e)
           (values (format nil "Error: ~A~%" e) 400 nil)))
-    (format t "body: ~A ~% status: ~A ~% res-headers: ~A ~%" 
-            body status (json-to-html res-headers))
     body))
 
 (defun add-img-tag-if-needed (str s)
   "Add <img>-s to mark images in the string."
   (multiple-value-bind (str match) 
       (cl-ppcre:regex-replace-all 
-       "(https:\/\/.*\.(?:jpg)|(?:png)|(?:gif)|(?:webp)|(?:svg)|(?:jpeg))"
+       "(https:\/\/.*(?:(?:.jpg)|(?:.png)|(?:.gif)|(?:.webp)|(?:.svg)|(?:.jpeg))$)"
        str
        "<br/><img style=\"max-width: 100%;\" src=\"\\1\">")
     (when match (format s str))
@@ -74,11 +71,10 @@
     match))
 
 (defun render-response (body)
-  "Render the response as JSON by default. If can't convert to JSON, 
+  "Render the JSON using the given function. If can't convert to JSON, 
    display the content informing the user of the format error."
   (handler-case
-      (json-to-html 
-       (njson:decode body))
+      (json-to-html (njson:decode body))
     (njson:jerror (e)
       (format t "Error while decoding json: ~A~%" e)
       (format nil "Could not decode response as json: ~A" body))
@@ -143,37 +139,36 @@
   PANTEL-TITLE-FORMAT-STR is a control string to display a title for the panel.
   "
 
-  (nyxt:define-panel-command-global 
-      ,command-name
-    nil
-    (nyxt:panel-buffer ,(symbol-name command-name))
+  `(nyxt:define-panel-command-global 
+       ,command-name
+     nil
+     (nyxt:panel-buffer ,(symbol-name command-name))
 
-    ;; Copy selection to clipboard 
-    ;; (Maybe this text selection should be handled internally, without 
-    ;; the use of the system clipboard?)
-    (nyxt:ffi-buffer-copy (nyxt:current-buffer))
+     ;; Copy selection to clipboard 
+     ;; (Maybe this text selection should be handled internally, without 
+     ;; the use of the system clipboard?)
+     (nyxt:ffi-buffer-copy (nyxt:current-buffer))
 
-    (let* ((selection 
-             (metabang.cl-containers:delete-first (nyxt:clipboard-ring nyxt:*browser*)))
-           (selection-sanitized 
-             (sanitize-query selection))
-           (content-prepared 
-             (njson:encode
-              (embed-query-text ,content selection-sanitized)))
-           (url
-             (get-query-url 
-              selection-sanitized
-              ,api-host 
-              ,api-path-format-str 
-              (embed-query-text ,query-params selection-sanitized)
-              :scheme ,scheme))
-           (response (execute-request url ,method :content content-prepared)))
-      (nyxt:echo url)
+     (let* ((selection 
+              (metabang.cl-containers:delete-first (nyxt:clipboard-ring nyxt:*browser*)))
+            (selection-sanitized 
+              (sanitize-query selection))
+            (content-prepared 
+              (njson:encode
+               (embed-query-text ,content selection-sanitized)))
+            (url
+              (get-query-url 
+               selection-sanitized
+               ,api-host 
+               ,api-path-format-str 
+               (embed-query-text ,query-params selection-sanitized)
+               :scheme ,scheme))
+            (response (execute-request url ,method :content content-prepared)))
+       (nyxt:echo url)
 
-      (format nil "<h4>~A</h4> ~A" 
-              (format nil ,panel-title-format-str selection-sanitized)
-              (render-response response)))))
-
+       (format nil "<h4>~A</h4> ~A" 
+               (format nil ,panel-title-format-str selection-sanitized)
+               (render-response response)))))
 
 ;; Default API added to verify the existence and functioning of the extension
 (nx-json-api-panel:add-api 
