@@ -8,16 +8,21 @@ A Nyxt browser extension to conveniently query JSON APIs with the content of you
 This tool allows an easy definition of API query commands. The commands will be run against the
 user's clipboard conent, and display their result in a side panel.
 
+Note that the extension only brings a single api-command by default (Dictionary API). See the
+examples for further api commands.
+
 [[./demo.gif]]
 
 * Example config file and api command declarations
 
+In your config.lisp:
 #+NAME: config.lisp
 #+BEGIN_SRC lisp
 (nyxt:define-nyxt-user-system-and-load "nyxt-user/nx-json-api-panel"
   :depends-on ("nx-json-api-panel") :components ("json-api-panel-defs.lisp"))
 #+END_SRC
 
+In json-api-panel-defs.lisp:
 #+NAME: json-api-panel-defs.lisp
 #+BEGIN_SRC lisp
 (in-package #:nyxt-user)
@@ -47,6 +52,12 @@ user's clipboard conent, and display their result in a side panel.
   :content '(("model" . "phi")
              ("stream" . nil)
              ("prompt" . "~A")))
+
+* TODO:
+- JSON filtering?
+- use spinneret?
+- define shortcuts for commands
+
 #+END_SRC
 
 * License
