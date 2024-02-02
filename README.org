@@ -5,7 +5,7 @@
 #+CONTRIBUTING:
 
 A Nyxt browser extension to conveniently query JSON APIs with the content of your clipboard.
-This tool allows easy definition API query commands. The commands will be run against the
+This tool allows an easy definition of API query commands. The commands will be run against the
 user's clipboard conent, and display their result in a side panel.
 
 [[./demo.gif]]
