@@ -52,13 +52,12 @@ In json-api-panel-defs.lisp:
   :content '(("model" . "phi")
              ("stream" . nil)
              ("prompt" . "~A")))
+#+END_SRC
 
 * TODO:
 - JSON filtering?
 - use spinneret?
 - define shortcuts for commands
-
-#+END_SRC
 
 * License
 
